@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bot / Troll Detector for Facebook — prototype</title>
+    <style>
+      :root {
+        --blue: #1877f2;
+        --ink: #1c1e21;
+        --muted: #65676b;
+        --line: #e4e6eb;
+        --bg: #f0f2f5;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font: 15px/1.5 -apple-system, system-ui, Segoe UI, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+      }
+      header {
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+        padding: 22px 20px;
+      }
+      .wrap {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 0 16px;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 22px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin: 22px 0 40px;
+      }
+      @media (max-width: 760px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      label {
+        font-weight: 600;
+        font-size: 13px;
+        display: block;
+        margin-bottom: 6px;
+      }
+      textarea {
+        width: 100%;
+        height: 260px;
+        resize: vertical;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        font: 13px/1.5 ui-monospace, Menlo, monospace;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 12px;
+        margin: 6px 0 0;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      button {
+        font: inherit;
+        font-weight: 600;
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 16px;
+        cursor: pointer;
+      }
+      .primary {
+        background: var(--blue);
+        color: #fff;
+      }
+      .primary:hover {
+        background: #166fe0;
+      }
+      .ghost {
+        background: #e4e6eb;
+        color: var(--ink);
+      }
+      .banner {
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 16px;
+      }
+      .banner strong {
+        font-size: 16px;
+      }
+      .low {
+        background: #e7f6ec;
+      }
+      .medium {
+        background: #fff4e0;
+      }
+      .high {
+        background: #fde8e8;
+      }
+      h3.sec {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        margin: 18px 0 8px;
+      }
+      .finding {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 8px;
+      }
+      .finding .h {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .quote {
+        font-style: italic;
+        color: #333;
+        word-break: break-word;
+      }
+      .why {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 6px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .disclaimer {
+        font-size: 12px;
+        color: var(--muted);
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+        margin-top: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <h1>🔍 Bot / Troll Detector for Facebook</h1>
+        <p class="sub">
+          Interactive prototype — paste a comment section (or load the demo) and
+          see the detector flag coordinated, bot-like, and AI-generated comments.
+          Runs entirely in your browser.
+        </p>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="grid">
+        <section class="card">
+          <label for="input">Comments</label>
+          <textarea id="input" placeholder="One comment per line. Optional formats:
+Alice | Love this post!
+Bob: Great content, thanks for sharing
+…or just paste plain comment lines."></textarea>
+          <p class="hint">
+            Format per line: <code>Author | comment | time</code> — the author and
+            time parts are optional.
+          </p>
+          <div class="row">
+            <button class="primary" id="analyze">Analyze</button>
+            <button class="ghost" id="demo">Load demo (botted post)</button>
+            <button class="ghost" id="demo2">Load demo (organic post)</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div id="results">
+            <p class="muted">Results will appear here. Try “Load demo” →</p>
+          </div>
+        </section>
+      </div>
+
+      <p class="disclaimer">
+        Prototype scope: this demonstrates the same on-device detection engine the
+        browser extension uses (<code>analyze.js</code>), running on pasted/demo
+        data. A web page can’t read live Facebook comments (browser security + FB
+        login) — that’s what the extension is for. Findings are signals, not proof:
+        the tool flags <em>coordination patterns</em>, not individual “this is a
+        bot” verdicts.
+      </p>
+    </main>
+
+    <!-- the real engine, shared with the extension -->
+    <script src="../extension/src/analyze.js"></script>
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      const BOTTED = `Alice Chen | This is amazing! Thanks so much for sharing this incredible content | 2h
+Mark Rivera | This is amazing!! Thanks so much for sharing this incredible content | 2h
+Priya N | This is amazing, thanks so much for sharing this incredible content!! | 2h
+GrowthGuru88 | In today's fast-paced world this plays a crucial role. Moreover it is important to note the ever-evolving landscape | 2h
+Daniel K | Such a game-changer! It is important to note how this delves into the landscape and plays a vital role | 2h
+realdeals_now | Great post! Very informative and insightful | 2h
+realdeals_now2 | Great post! Very informative and insightful | 2h
+Sam O | wait did anyone else see the typo in the third paragraph lol | 5h
+Jenna | this reminds me of my trip to portugal last spring, miss it | 1d`;
+
+      const ORGANIC = `Sam O | honestly not sure I agree with point 2 but interesting read | 4h
+Jenna | this reminds me of my trip last spring 😂 | 1d
+Mike | wait is the link broken for anyone else? | 3h
+Aisha | my mum would love this, sending it to her | 6h
+Tomás | counterpoint: the data here is from 2021, bit outdated no? | 2h
+Leo | lol the cat in the photo is the real star | 5h`;
+
+      function parse(textBlock) {
+        return textBlock
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean)
+          .map((line, i) => {
+            let author = null,
+              text = line,
+              ts = null;
+            if (line.includes("|")) {
+              const parts = line.split("|").map((p) => p.trim());
+              author = parts[0] || null;
+              text = parts[1] || "";
+              ts = parts[2] || null;
+            } else {
+              const m = line.match(/^([^:]{1,40}):\s*(.+)$/);
+              if (m) {
+                author = m[1].trim();
+                text = m[2].trim();
+              }
+            }
+            author = author || "User " + (i + 1);
+            return {
+              authorName: author,
+              authorKey: "name:" + author.toLowerCase(),
+              authorProfileLink: "demo",
+              text,
+              timestampText: ts,
+            };
+          });
+      }
+
+      const esc = (s) => {
+        const d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+      };
+
+      function render(r) {
+        const labels = {
+          low: "Looks mostly organic",
+          medium: "Some suspicious activity",
+          high: "Strong signs of coordination",
+        };
+        let h = `<div class="banner ${r.level}"><strong>${labels[r.level]}</strong>
+          <div class="muted">${r.analyzed} comments analyzed</div></div>`;
+
+        h += `<h3 class="sec">Coordinated clusters (${r.clusters.length})</h3>`;
+        if (!r.clusters.length)
+          h += `<p class="muted">No repeated/templated comments across accounts.</p>`;
+        else
+          r.clusters.slice(0, 8).forEach((c) => {
+            h += `<div class="finding">
+              <div class="h">${c.size} comments · ${c.distinctAuthors} accounts</div>
+              <div class="quote">“${esc(c.sampleText)}”</div>
+              <div class="why">Why: same/near-identical text posted by multiple accounts.</div>
+            </div>`;
+          });
+
+        h += `<h3 class="sec">AI-looking comments (${r.aiFlags.length})</h3>`;
+        if (!r.aiFlags.length) h += `<p class="muted">None stood out.</p>`;
+        else
+          r.aiFlags.slice(0, 8).forEach((f) => {
+            h += `<div class="finding">
+              <div class="h">${esc(f.author || "Unknown")} · ${f.score}% AI-ish</div>
+              <div class="quote">“${esc(f.text)}”</div></div>`;
+          });
+
+        if (r.bursts.length) {
+          h += `<h3 class="sec">Timing bursts</h3>`;
+          r.bursts.slice(0, 5).forEach((b) => {
+            h += `<div class="finding">${b.count} comments around “${esc(b.window)}” <span class="muted">(approx — FB timestamps are coarse)</span></div>`;
+          });
+        }
+        $("results").innerHTML = h;
+      }
+
+      function analyze() {
+        const comments = parse($("input").value);
+        if (!comments.length) {
+          $("results").innerHTML = `<p class="muted">Paste some comments or load a demo first.</p>`;
+          return;
+        }
+        render(window.FBD.analyze.run(comments));
+      }
+
+      $("analyze").addEventListener("click", analyze);
+      $("demo").addEventListener("click", () => {
+        $("input").value = BOTTED;
+        analyze();
+      });
+      $("demo2").addEventListener("click", () => {
+        $("input").value = ORGANIC;
+        analyze();
+      });
+    </script>
+  </body>
+</html>
