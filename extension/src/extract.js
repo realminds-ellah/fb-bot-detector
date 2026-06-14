@@ -44,18 +44,39 @@
     return null;
   };
 
+  // Find comment containers, with fallbacks for FB layout/locale variation.
+  const findCommentEls = () => {
+    const articles = [...document.querySelectorAll('[role="article"]')];
+    // Primary: aria-label like "Comment by <name>" / "Reply by <name>".
+    let els = articles.filter((a) =>
+      /^(comment|reply) by/i.test(a.getAttribute("aria-label") || "")
+    );
+    // Fallback 1: any article whose label merely mentions comment/reply.
+    if (!els.length)
+      els = articles.filter((a) =>
+        /\b(comment|reply)\b/i.test(a.getAttribute("aria-label") || "")
+      );
+    // Fallback 2: any element explicitly labelled as a comment, regardless of role.
+    if (!els.length)
+      els = [
+        ...document.querySelectorAll(
+          '[aria-label^="Comment by" i],[aria-label^="Reply by" i]'
+        ),
+      ];
+    return els;
+  };
+
   // Pull the comments currently rendered on the page. Read-only; never clicks.
   const scanComments = (limit = 500) => {
     const now = Date.now();
-    const els = [...document.querySelectorAll('[role="article"]')].filter((a) =>
-      /^comment by/i.test(a.getAttribute("aria-label") || "")
-    );
+    const els = findCommentEls();
+    console.debug(`[Comment Check] comment containers found: ${els.length}`);
 
     return els.slice(0, limit).map((el, index) => {
       const aria = el.getAttribute("aria-label") || "";
       const authorName =
         aria
-          .replace(/^comment by\s*/i, "")
+          .replace(/^(comment|reply) by\s*/i, "")
           .split(/\s{2,}|,/)[0]
           .trim() || null;
 
