@@ -76,6 +76,30 @@
         font-size: 12px;
         margin: 6px 0 0;
       }
+      .toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 400;
+        font-size: 13px;
+        margin-top: 10px;
+        cursor: pointer;
+      }
+      .howto {
+        margin-top: 10px;
+      }
+      .howto summary {
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .howto ol {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.7;
+        margin: 8px 0 0;
+        padding-left: 18px;
+      }
       .row {
         display: flex;
         gap: 10px;
@@ -181,6 +205,32 @@ Bob: Great content, thanks for sharing
             Format per line: <code>Author | comment | time</code> — the author and
             time parts are optional.
           </p>
+          <label class="toggle">
+            <input type="checkbox" id="rawmode" />
+            I pasted raw text copied from a Facebook post (clean it up for me)
+          </label>
+          <details class="howto">
+            <summary>How to copy comments from a real Facebook post</summary>
+            <ol>
+              <li>
+                Open the post on Facebook and scroll so the comments you want are
+                visible (click “View more comments” to load more).
+              </li>
+              <li>
+                Click and drag to select across the comments — from the first
+                commenter’s name down through the last comment.
+              </li>
+              <li>Copy (⌘C / Ctrl+C).</li>
+              <li>
+                Tick the box above, paste here, and hit <b>Analyze</b>. The cleaner
+                strips out “Like / Reply / 2h” noise automatically.
+              </li>
+            </ol>
+            <p class="hint">
+              Best-effort: Facebook’s copied text is messy, so author/comment
+              splitting won’t be perfect.
+            </p>
+          </details>
           <div class="row">
             <button class="primary" id="analyze">Analyze</button>
             <button class="ghost" id="demo">Load demo (botted post)</button>
@@ -259,6 +309,61 @@ Leo | lol the cat in the photo is the real star | 5h`;
           });
       }
 
+      // "Raw paste" cleaner: turn messy text copied off a real FB post into
+      // comment objects. Strips UI chrome (Like/Reply/timestamps/counts) and
+      // pairs a name line with the comment line(s) that follow it. Best-effort.
+      const NOISE = [
+        /^(like|reply|share|edited|follow|author|top fan|top contributor|verified|most relevant|newest|all comments|see translation|hide|comment|reply to)$/i,
+        /^view\s+\d+\s+repl(y|ies)$/i,
+        /^view\s+(more|previous|\d+)\s+comments?$/i,
+        /^\d+(\.\d+)?\s*[km]?$/i, // reaction counts: 12, 1.2K
+        /^\d+\s*(m|h|d|w|y|min|mins|hr|hrs)$/i, // bare relative time
+        /^(just now|yesterday)$/i,
+        /^[·•▪]+$/,
+      ];
+      const isNoise = (l) => NOISE.some((re) => re.test(l));
+      const isName = (l) => {
+        if (l.length > 48) return false;
+        const w = l.split(/\s+/);
+        if (!w.length || w.length > 5) return false;
+        if (/[.!?,:;]$/.test(l) || /[?!]/.test(l)) return false;
+        const capish = w.filter((x) => /^[A-Z0-9]/.test(x)).length;
+        return capish >= Math.ceil(w.length / 2);
+      };
+      function smartParse(raw) {
+        const lines = raw
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean)
+          .filter((l) => !isNoise(l));
+        const out = [];
+        let cur = null;
+        for (const l of lines) {
+          if (isName(l)) {
+            cur = {
+              authorName: l,
+              authorKey: "name:" + l.toLowerCase(),
+              authorProfileLink: "demo",
+              text: "",
+              timestampText: null,
+            };
+            out.push(cur);
+          } else if (cur) {
+            cur.text = cur.text ? cur.text + " " + l : l;
+          } else {
+            cur = {
+              authorName: "User " + (out.length + 1),
+              authorKey: "anon" + out.length,
+              authorProfileLink: "demo",
+              text: l,
+              timestampText: null,
+            };
+            out.push(cur);
+          }
+        }
+        return out.filter((c) => c.text && c.text.length);
+      }
+
       const esc = (s) => {
         const d = document.createElement("div");
         d.textContent = s;
@@ -305,7 +410,8 @@ Leo | lol the cat in the photo is the real star | 5h`;
       }
 
       function analyze() {
-        const comments = parse($("input").value);
+        const raw = $("input").value;
+        const comments = $("rawmode").checked ? smartParse(raw) : parse(raw);
         if (!comments.length) {
           $("results").innerHTML = `<p class="muted">Paste some comments or load a demo first.</p>`;
           return;
