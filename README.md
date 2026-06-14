@@ -34,8 +34,32 @@ are obtainable. To test it: on the post, **click the reaction count to open the
 reactions dialog**, then Scan again. If reactor profiles show up, reaction-based
 signals are viable; if not, comment signals carry v1.
 
-## Phase 1 (later)
+## Phase 1 — the extension
 
-A real `extension/` built on the probe's extraction core: duplication + burst +
-AI-text heuristics, cluster-level output, conservative comment loading. Tracked in
-`SPEC.md`.
+`extension/` is the real tool. 100% on-device, no backend, no cost.
+
+- `src/extract.js` — the only file that touches FB's DOM (the patch point)
+- `src/analyze.js` — pure analysis: duplication clusters, AI-text heuristics, burst timing, profile flags
+- `src/ui.js` — injected launcher + results panel; highlights flagged comments in-page
+- `src/content.js` — orchestrator
+- `styles/panel.css`
+
+### Run it
+
+1. `chrome://extensions` → **Developer mode** on.
+2. **Load unpacked** → select the `extension/` folder.
+3. Open a Facebook post → click the **🔍 Check comments** button (bottom-right).
+
+By default it analyzes only comments already loaded on the page (safe). The panel's
+**"Load all comments (risky)"** button auto-clicks through the thread on your
+logged-in account — Meta may flag heavy automation, so it's gated behind a confirm.
+
+### Test the logic without a browser
+
+`node` can exercise the pure analysis layer (see commit history / `analyze.js`).
+
+### Known limitation
+
+Extraction selectors are best-effort against FB's obfuscated DOM and will need
+updating when FB ships UI changes. If a field comes back empty on a real post,
+`src/extract.js` is the one place to fix.

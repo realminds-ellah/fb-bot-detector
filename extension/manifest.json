@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Bot/Troll Detector for Facebook",
+  "version": "0.1.0",
+  "description": "Flags likely bot, troll, and AI-generated activity in Facebook comments — analyzed entirely on your device. No account, no servers, no cost.",
+  "host_permissions": ["https://*.facebook.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://*.facebook.com/*"],
+      "css": ["styles/panel.css"],
+      "js": [
+        "src/extract.js",
+        "src/analyze.js",
+        "src/ui.js",
+        "src/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
