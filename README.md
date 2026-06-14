@@ -46,8 +46,11 @@ signals are viable; if not, comment signals carry v1.
 
 ### Run it
 
+**📖 Full beginner-friendly walkthrough: [`extension/INSTALL.md`](./extension/INSTALL.md)**
+
+Quick version:
 1. `chrome://extensions` → **Developer mode** on.
-2. **Load unpacked** → select the `extension/` folder.
+2. **Load unpacked** → select the `extension/` folder (the one with `manifest.json`).
 3. Open a Facebook post → click the **🔍 Check comments** button (bottom-right).
 
 By default it analyzes only comments already loaded on the page (safe). The panel's
