@@ -116,10 +116,15 @@
     parent.appendChild(card);
   };
 
-  const renderLoading = () => {
+  // Spinner + status line. Reused for the scan steps and the slow load-all flow.
+  const renderProgress = (text) => {
     body.replaceChildren();
-    body.appendChild(el("p", "fbd-muted", "Checking the comments on this page…"));
+    const wrap = el("div", "fbd-progress");
+    wrap.appendChild(el("div", "fbd-spinner"));
+    wrap.appendChild(el("div", "fbd-progress-text", text || "Working…"));
+    body.appendChild(wrap);
   };
+  const renderLoading = () => renderProgress("Reading the comments on this page…");
 
   const renderResults = (r, coverage) => {
     body.replaceChildren();
@@ -230,5 +235,5 @@
     annotated = [];
   };
 
-  FBD.ui = { mount, renderLoading, renderResults, annotateFeed, clearAnnotations };
+  FBD.ui = { mount, renderLoading, renderProgress, renderResults, annotateFeed, clearAnnotations };
 })();
