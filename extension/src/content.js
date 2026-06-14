@@ -11,7 +11,7 @@
       moreAvailable: FBD.extract.findLoadMoreButtons().length > 0,
     };
     FBD.ui.renderResults(result, coverage);
-    FBD.ui.highlight(result.flaggedComments);
+    FBD.ui.annotateFeed(result);
   };
 
   // The account-risk feature. Gated behind explicit confirm, throttled, capped.

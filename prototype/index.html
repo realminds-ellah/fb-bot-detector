@@ -372,6 +372,26 @@ Leo | lol the cat in the photo is the real star | 5h`;
         return d.innerHTML;
       };
 
+      const CATS = {
+        clusters: { title: "Copy-paste comments", icon: "📋", blurb: "The same (or nearly the same) comment posted by different accounts — a classic sign of a bot or paid campaign trying to make an opinion look popular." },
+        ai: { title: "Sounds AI-written", icon: "🤖", blurb: "Comments with the polished, generic style of AI text rather than a real person." },
+        troll: { title: "Hostile / trolling", icon: "😠", blurb: "Insulting, aggressive, or attacking comments meant to provoke or intimidate." },
+        spam: { title: "Spam / scams", icon: "📢", blurb: "Promotions, links, money-making pitches, or scam bait." },
+        account: { title: "Suspicious accounts", icon: "⚠️", blurb: "Account names with odd patterns (lots of digits, all caps). Limited — only the name and profile link are visible." },
+      };
+      const SUMMARY = {
+        low: { head: "✅ Looks genuine", msg: "These read like a mix of real, varied opinions. No signs of an organized push." },
+        medium: { head: "⚠️ Read with caution", msg: "Some comments here look fake, automated, or hostile. Don’t take the comment section at face value." },
+        high: { head: "🚨 Likely manipulated", msg: "Strong signs that comments here are coordinated, fake, or designed to provoke. Volume can be manufactured — don’t assume this reflects what real people think." },
+      };
+      const TIPS = [
+        "If the same point is repeated by many accounts, that’s volume — not proof it’s true or popular.",
+        "Hostile replies are often designed to make you feel outnumbered or foolish for your view. That’s a tactic, not a verdict.",
+        "Polished, generic comments may be AI-written. Real people include personal, specific details.",
+        "Check a profile before trusting it: brand-new account, no photo, or an odd name with digits = be skeptical.",
+        "Take a breath before reacting. Manufactured outrage is the goal — slowing down is your best defence.",
+      ];
+
       function fcard(header, quote, reasons) {
         let h = `<div class="finding"><div class="h">${esc(header)}</div>`;
         if (quote) h += `<div class="quote">“${esc(quote)}”</div>`;
@@ -379,45 +399,43 @@ Leo | lol the cat in the photo is the real star | 5h`;
           h += `<div class="why">Why: ${esc(reasons.join(", "))}</div>`;
         return h + "</div>";
       }
-      function sectionHtml(title, items, emptyMsg, fn) {
-        let h = `<h3 class="sec">${esc(title)} (${items.length})</h3>`;
+      function catHtml(key, items, emptyMsg, fn) {
+        const c = CATS[key];
+        let h = `<h3 class="sec">${c.icon} ${esc(c.title)} (${items.length})</h3>
+          <p class="hint" style="margin-bottom:8px">${esc(c.blurb)}</p>`;
         if (!items.length) return h + `<p class="muted">${esc(emptyMsg)}</p>`;
         items.slice(0, 8).forEach((it) => (h += fn(it)));
         return h;
       }
       function render(r) {
-        const labels = {
-          low: "Looks mostly organic",
-          medium: "Some suspicious activity",
-          high: "Strong signs of coordination",
-        };
-        let h = `<div class="banner ${r.level}"><strong>${labels[r.level]}</strong>
-          <div class="muted">${r.analyzed} comments analyzed</div></div>`;
+        const s = SUMMARY[r.level];
+        let h = `<div class="banner ${r.level}"><strong>${s.head}</strong>
+          <div style="margin:6px 0">${s.msg}</div>
+          <div class="muted">${r.analyzed} comments checked</div></div>`;
 
-        h += sectionHtml("Coordinated clusters", r.clusters,
-          "No repeated/templated comments across accounts.",
-          (c) => fcard(`${c.size} comments · ${c.distinctAuthors} accounts`, c.sampleText,
-            ["same/near-identical text posted by multiple accounts"]));
-
-        h += sectionHtml("AI-looking comments", r.aiFlags, "None stood out.",
+        h += catHtml("clusters", r.clusters, "None found — comments look varied.",
+          (c) => fcard(`${c.size} comments from ${c.distinctAuthors} accounts`, c.sampleText,
+            ["same/near-identical text from multiple accounts"]));
+        h += catHtml("ai", r.aiFlags, "None stood out.",
           (f) => fcard(`${f.author || "Unknown"} · ${f.score}% AI-ish`, f.text, f.reasons));
-
-        h += sectionHtml("Troll / hostile", r.trollFlags, "Nothing hostile detected.",
+        h += catHtml("troll", r.trollFlags, "Nothing hostile detected.",
           (f) => fcard(`${f.author || "Unknown"} · ${f.score}% hostile`, f.text, f.reasons));
-
-        h += sectionHtml("Spam / bot-like", r.spamFlags, "No spammy/promotional comments.",
+        h += catHtml("spam", r.spamFlags, "No spam/scam comments.",
           (f) => fcard(`${f.author || "Unknown"} · ${f.score}% spammy`, f.text, f.reasons));
-
-        h += sectionHtml("Account red-flags", r.accountFlags, "No obvious account red-flags.",
+        h += catHtml("account", r.accountFlags, "No obvious account red-flags.",
           (a) => fcard(a.author || "Unknown", null, a.flags));
-        h += `<p class="hint">Account view is limited: only the name + profile link are visible without opening each profile.</p>`;
 
         if (r.bursts.length) {
-          h += `<h3 class="sec">Timing bursts</h3>`;
+          h += `<h3 class="sec">⏱️ Posted in a rush</h3>`;
           r.bursts.slice(0, 5).forEach((b) => {
-            h += `<div class="finding">${b.count} comments around “${esc(b.window)}” <span class="muted">(approx — FB timestamps are coarse)</span></div>`;
+            h += `<div class="finding">${b.count} comments around “${esc(b.window)}” <span class="muted">(approx)</span></div>`;
           });
         }
+
+        h += `<h3 class="sec">🧠 How to spot manipulation yourself</h3><ul class="hint" style="padding-left:18px;line-height:1.7">`;
+        TIPS.forEach((t) => (h += `<li>${esc(t)}</li>`));
+        h += `</ul>`;
+
         $("results").innerHTML = h;
       }
 
