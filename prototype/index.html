@@ -268,7 +268,9 @@ Daniel K | Such a game-changer! It is important to note how this delves into the
 realdeals_now | Great post! Very informative and insightful | 2h
 realdeals_now2 | Great post! Very informative and insightful | 2h
 Sam O | wait did anyone else see the typo in the third paragraph lol | 5h
-Jenna | this reminds me of my trip to portugal last spring, miss it | 1d`;
+Jenna | this reminds me of my trip to portugal last spring, miss it | 1d
+AngryVoice99 | honestly you are all complete idiots if you believe this garbage, pathetic | 2h
+CryptoKing7788 | 🔥🔥 Make $5000 a week from home! DM me or check my bio for the link 🔥🔥💰💰 | 2h`;
 
       const ORGANIC = `Sam O | honestly not sure I agree with point 2 but interesting read | 4h
 Jenna | this reminds me of my trip last spring 😂 | 1d
@@ -370,6 +372,19 @@ Leo | lol the cat in the photo is the real star | 5h`;
         return d.innerHTML;
       };
 
+      function fcard(header, quote, reasons) {
+        let h = `<div class="finding"><div class="h">${esc(header)}</div>`;
+        if (quote) h += `<div class="quote">“${esc(quote)}”</div>`;
+        if (reasons && reasons.length)
+          h += `<div class="why">Why: ${esc(reasons.join(", "))}</div>`;
+        return h + "</div>";
+      }
+      function sectionHtml(title, items, emptyMsg, fn) {
+        let h = `<h3 class="sec">${esc(title)} (${items.length})</h3>`;
+        if (!items.length) return h + `<p class="muted">${esc(emptyMsg)}</p>`;
+        items.slice(0, 8).forEach((it) => (h += fn(it)));
+        return h;
+      }
       function render(r) {
         const labels = {
           low: "Looks mostly organic",
@@ -379,26 +394,23 @@ Leo | lol the cat in the photo is the real star | 5h`;
         let h = `<div class="banner ${r.level}"><strong>${labels[r.level]}</strong>
           <div class="muted">${r.analyzed} comments analyzed</div></div>`;
 
-        h += `<h3 class="sec">Coordinated clusters (${r.clusters.length})</h3>`;
-        if (!r.clusters.length)
-          h += `<p class="muted">No repeated/templated comments across accounts.</p>`;
-        else
-          r.clusters.slice(0, 8).forEach((c) => {
-            h += `<div class="finding">
-              <div class="h">${c.size} comments · ${c.distinctAuthors} accounts</div>
-              <div class="quote">“${esc(c.sampleText)}”</div>
-              <div class="why">Why: same/near-identical text posted by multiple accounts.</div>
-            </div>`;
-          });
+        h += sectionHtml("Coordinated clusters", r.clusters,
+          "No repeated/templated comments across accounts.",
+          (c) => fcard(`${c.size} comments · ${c.distinctAuthors} accounts`, c.sampleText,
+            ["same/near-identical text posted by multiple accounts"]));
 
-        h += `<h3 class="sec">AI-looking comments (${r.aiFlags.length})</h3>`;
-        if (!r.aiFlags.length) h += `<p class="muted">None stood out.</p>`;
-        else
-          r.aiFlags.slice(0, 8).forEach((f) => {
-            h += `<div class="finding">
-              <div class="h">${esc(f.author || "Unknown")} · ${f.score}% AI-ish</div>
-              <div class="quote">“${esc(f.text)}”</div></div>`;
-          });
+        h += sectionHtml("AI-looking comments", r.aiFlags, "None stood out.",
+          (f) => fcard(`${f.author || "Unknown"} · ${f.score}% AI-ish`, f.text, f.reasons));
+
+        h += sectionHtml("Troll / hostile", r.trollFlags, "Nothing hostile detected.",
+          (f) => fcard(`${f.author || "Unknown"} · ${f.score}% hostile`, f.text, f.reasons));
+
+        h += sectionHtml("Spam / bot-like", r.spamFlags, "No spammy/promotional comments.",
+          (f) => fcard(`${f.author || "Unknown"} · ${f.score}% spammy`, f.text, f.reasons));
+
+        h += sectionHtml("Account red-flags", r.accountFlags, "No obvious account red-flags.",
+          (a) => fcard(a.author || "Unknown", null, a.flags));
+        h += `<p class="hint">Account view is limited: only the name + profile link are visible without opening each profile.</p>`;
 
         if (r.bursts.length) {
           h += `<h3 class="sec">Timing bursts</h3>`;

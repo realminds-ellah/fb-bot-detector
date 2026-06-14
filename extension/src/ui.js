@@ -54,6 +54,16 @@
     body.appendChild(el("p", "fbd-muted", "Analyzing visible comments…"));
   };
 
+  // one flagged-comment card: header + quote + the reasons that fired
+  const flagCard = (parent, header, quote, reasons) => {
+    const card = el("div", "fbd-card");
+    card.appendChild(el("div", "fbd-card-h", header));
+    if (quote) card.appendChild(el("div", "fbd-quote", `“${quote}”`));
+    if (reasons && reasons.length)
+      card.appendChild(el("div", "fbd-why", "Why: " + reasons.join(", ")));
+    parent.appendChild(card);
+  };
+
   const renderResults = (r, coverage) => {
     body.replaceChildren();
 
@@ -70,27 +80,51 @@
     if (!r.clusters.length) {
       cs.appendChild(el("p", "fbd-muted", "No repeated/templated comments across accounts."));
     } else {
-      r.clusters.slice(0, 8).forEach((cl) => {
-        const card = el("div", "fbd-card");
-        card.appendChild(
-          el("div", "fbd-card-h", `${cl.size} comments · ${cl.distinctAuthors} accounts`)
-        );
-        card.appendChild(el("div", "fbd-quote", `“${cl.sampleText}”`));
-        card.appendChild(el("div", "fbd-why", "Why: same/near-identical text posted by multiple accounts."));
-        cs.appendChild(card);
-      });
+      r.clusters.slice(0, 8).forEach((cl) =>
+        flagCard(
+          cs,
+          `${cl.size} comments · ${cl.distinctAuthors} accounts`,
+          cl.sampleText,
+          ["same/near-identical text posted by multiple accounts"]
+        )
+      );
     }
 
     // AI-generated-looking comments
     const ai = section(`AI-looking comments (${r.aiFlags.length})`);
     if (!r.aiFlags.length) ai.appendChild(el("p", "fbd-muted", "None stood out."));
     else
-      r.aiFlags.slice(0, 8).forEach((f) => {
-        const card = el("div", "fbd-card");
-        card.appendChild(el("div", "fbd-card-h", `${f.author || "Unknown"} · ${f.score}% AI-ish`));
-        card.appendChild(el("div", "fbd-quote", `“${f.text}”`));
-        ai.appendChild(card);
-      });
+      r.aiFlags.slice(0, 8).forEach((f) =>
+        flagCard(ai, `${f.author || "Unknown"} · ${f.score}% AI-ish`, f.text, f.reasons)
+      );
+
+    // Troll / hostile comments
+    const tr = section(`Troll / hostile (${r.trollFlags.length})`);
+    if (!r.trollFlags.length) tr.appendChild(el("p", "fbd-muted", "Nothing hostile detected."));
+    else
+      r.trollFlags.slice(0, 8).forEach((f) =>
+        flagCard(tr, `${f.author || "Unknown"} · ${f.score}% hostile`, f.text, f.reasons)
+      );
+
+    // Spam / bot-like comments
+    const sp = section(`Spam / bot-like (${r.spamFlags.length})`);
+    if (!r.spamFlags.length) sp.appendChild(el("p", "fbd-muted", "No spammy/promotional comments."));
+    else
+      r.spamFlags.slice(0, 8).forEach((f) =>
+        flagCard(sp, `${f.author || "Unknown"} · ${f.score}% spammy`, f.text, f.reasons)
+      );
+
+    // Account red-flags (the quick win — now actually shown)
+    const af = section(`Account red-flags (${r.accountFlags.length})`);
+    if (!r.accountFlags.length)
+      af.appendChild(el("p", "fbd-muted", "No obvious account red-flags."));
+    else
+      r.accountFlags.slice(0, 8).forEach((a) =>
+        flagCard(af, a.author || "Unknown", null, a.flags)
+      );
+    af.appendChild(
+      el("p", "fbd-fine", "Limited: only the name + profile link are visible without opening each profile.")
+    );
 
     // Burst timing (honest about coarseness)
     if (r.bursts.length) {
